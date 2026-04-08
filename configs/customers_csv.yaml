@@ -1,0 +1,58 @@
+pipeline:
+  name: customers_csv_pipeline
+  description: Load customer CSV into raw warehouse table
+  owner: data_platform
+  domain: customer
+  version: 1.0
+
+source:
+  type: csv
+  connection:
+    path: C:/Users/User/Desktop/Capstone Project InsightForge Analytics/self-service-platform/data/customers.csv
+  extraction:
+    mode: full
+  response_format: csv
+
+destination:
+  type: warehouse
+  warehouse: duckdb
+  schema: raw
+  table: customers
+  write_mode: overwrite
+  primary_key: customer_id
+
+schedule:
+  cron: "0 6 * * *"
+  timezone: UTC
+  start_date: 2026-01-01
+  catchup: false
+
+transform:
+  enabled: true
+  type: sql
+  sql_file: pipeline_platform/transforms/customers_clean.sql
+  target_schema: analytics
+  target_table: customers
+runtime:
+  retries: 1
+  retry_delay_minutes: 5
+  timeout_minutes: 30
+  alert_email: []
+
+logging:
+  log_level: INFO
+  capture_row_counts: true
+  capture_runtime_metrics: true
+  enable_pipeline_audit: true
+
+data_quality:
+ data_quality:
+  enabled: true
+  checks:
+    - name: not_null_customer_id
+      column: customer_id
+      rule: not_null
+    - name: positive_customer_id
+      column: customer_id
+      rule: greater_than
+      value: 0

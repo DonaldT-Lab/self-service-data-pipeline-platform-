@@ -6,6 +6,12 @@ from pipeline_platform.config_parser import PipelineConfig
 from pipeline_platform.warehouse.duckdb_client import DuckDBWarehouse
 
 
+def _escape_sql(value: str | None) -> str:
+    if value is None:
+        return ""
+    return value.replace("'", "''")
+
+
 class PipelineRegistry:
     def __init__(self, warehouse: DuckDBWarehouse) -> None:
         self.warehouse = warehouse
@@ -46,36 +52,67 @@ class PipelineRegistry:
         )
 
     def register_pipeline(self, config: PipelineConfig) -> None:
-        source_identifier = config.source.path or config.source.endpoint or "unknown"
+        connection = config.source.connection
+        source_identifier = (
+            connection.path
+            or (
+                f"{connection.base_url or ''}{connection.endpoint or ''}"
+                if connection.base_url or connection.endpoint
+                else "unknown"
+            )
+        )
+
+        pipeline_name = _escape_sql(config.pipeline.name)
+        owner = _escape_sql(config.pipeline.owner)
+        source_type = _escape_sql(config.source.type)
+        source_identifier = _escape_sql(source_identifier)
+        destination_schema = _escape_sql(config.destination.schema)
+        destination_table = _escape_sql(config.destination.table)
+        schedule = _escape_sql(config.schedule.cron)
+        load_mode = _escape_sql(config.destination.write_mode)
+
         now = datetime.now(timezone.utc).replace(tzinfo=None)
+
         self.warehouse.execute(
             f"""
             INSERT OR REPLACE INTO metadata_pipelines VALUES (
-                '{config.pipeline_name}',
-                '{config.owner}',
-                '{config.source.type}',
+                '{pipeline_name}',
+                '{owner}',
+                '{source_type}',
                 '{source_identifier}',
-                '{config.destination.schema}',
-                '{config.destination.table}',
-                '{config.schedule.cron}',
-                '{config.load_mode}',
+                '{destination_schema}',
+                '{destination_table}',
+                '{schedule}',
+                '{load_mode}',
                 TRUE,
-                COALESCE((SELECT created_at FROM metadata_pipelines WHERE pipeline_name = '{config.pipeline_name}'), TIMESTAMP '{now}'),
+                COALESCE(
+                    (SELECT created_at FROM metadata_pipelines WHERE pipeline_name = '{pipeline_name}'),
+                    TIMESTAMP '{now}'
+                ),
                 TIMESTAMP '{now}',
-                COALESCE((SELECT last_run_at FROM metadata_pipelines WHERE pipeline_name = '{config.pipeline_name}'), NULL),
-                COALESCE((SELECT last_status FROM metadata_pipelines WHERE pipeline_name = '{config.pipeline_name}'), NULL)
+                COALESCE(
+                    (SELECT last_run_at FROM metadata_pipelines WHERE pipeline_name = '{pipeline_name}'),
+                    NULL
+                ),
+                COALESCE(
+                    (SELECT last_status FROM metadata_pipelines WHERE pipeline_name = '{pipeline_name}'),
+                    NULL
+                )
             )
             """
         )
 
     def update_last_run_status(self, pipeline_name: str, status: str) -> None:
+        safe_pipeline_name = _escape_sql(pipeline_name)
+        safe_status = _escape_sql(status)
         now = datetime.now(timezone.utc).replace(tzinfo=None)
+
         self.warehouse.execute(
             f"""
             UPDATE metadata_pipelines
             SET last_run_at = TIMESTAMP '{now}',
-                last_status = '{status}',
+                last_status = '{safe_status}',
                 updated_at = TIMESTAMP '{now}'
-            WHERE pipeline_name = '{pipeline_name}'
+            WHERE pipeline_name = '{safe_pipeline_name}'
             """
         )

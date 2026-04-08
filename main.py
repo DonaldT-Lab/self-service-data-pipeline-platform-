@@ -15,13 +15,21 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser = subparsers.add_parser("run", help="Run a single pipeline config")
     run_parser.add_argument("--config", required=True, help="Path to YAML config")
 
-    run_all_parser = subparsers.add_parser("run-all", help="Run all pipeline configs in a directory")
-    run_all_parser.add_argument("--config-dir", required=True, help="Directory containing YAML configs")
+    run_all_parser = subparsers.add_parser(
+        "run-all", help="Run all pipeline configs in a directory"
+    )
+    run_all_parser.add_argument(
+        "--config-dir", required=True, help="Directory containing YAML configs"
+    )
 
-    dag_parser = subparsers.add_parser("generate-dag", help="Generate DAG stub from config")
+    dag_parser = subparsers.add_parser(
+        "generate-dag", help="Generate DAG stub from config"
+    )
     dag_parser.add_argument("--config", required=True, help="Path to YAML config")
 
-    show_parser = subparsers.add_parser("show-table", help="Show table contents from DuckDB")
+    show_parser = subparsers.add_parser(
+        "show-table", help="Show table contents from DuckDB"
+    )
     show_parser.add_argument("--table", required=True, help="Table name to inspect")
 
     return parser
@@ -37,14 +45,14 @@ def main() -> None:
         config = load_pipeline_config(args.config)
         executor = PipelineExecutor(warehouse=warehouse)
         executor.execute(config)
-        print(f"Pipeline '{config.pipeline_name}' executed successfully.")
+        print(f"Pipeline '{config.pipeline.name}' executed successfully.")
 
     elif args.command == "run-all":
         executor = PipelineExecutor(warehouse=warehouse)
         for config_path in sorted(Path(args.config_dir).glob("*.yaml")):
             config = load_pipeline_config(str(config_path))
             executor.execute(config)
-            print(f"Executed: {config.pipeline_name}")
+            print(f"Executed: {config.pipeline.name}")
 
     elif args.command == "generate-dag":
         config = load_pipeline_config(args.config)

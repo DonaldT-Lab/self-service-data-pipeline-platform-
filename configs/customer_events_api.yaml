@@ -1,0 +1,66 @@
+pipeline:
+  name: customer_events_pipeline
+  description: Ingest customer interaction events from the product API into the analytics warehouse
+  owner: product_analytics
+  domain: customer_platform
+  version: 1.0
+
+source:
+  type: api
+  connection:
+    base_url: https://api.company.internal
+    endpoint: /v1/events
+    method: GET
+    auth_type: bearer_token
+    auth_env_var: EVENTS_API_TOKEN
+  extraction:
+    mode: incremental
+    cursor_field: event_timestamp
+    pagination:
+      type: offset
+      page_size: 1000
+  response_format: json
+
+destination:
+  type: warehouse
+  warehouse: duckdb
+  schema: raw
+  table: customer_events
+  write_mode: append
+  primary_key: event_id
+
+schedule:
+  cron: "0 */6 * * *"
+  timezone: UTC
+  start_date: 2026-01-01
+  catchup: false
+
+transform:
+  enabled: false
+
+runtime:
+  retries: 3
+  retry_delay_minutes: 10
+  timeout_minutes: 30
+  alert_email:
+    - data-platform@company.com
+
+logging:
+  log_level: INFO
+  capture_row_counts: true
+  capture_runtime_metrics: true
+  enable_pipeline_audit: true
+
+data_quality:
+  enabled: true
+  checks:
+    - name: not_null_event_id
+      column: event_id
+      rule: not_null
+    - name: valid_timestamp
+      column: event_timestamp
+      rule: timestamp_format
+    - name: positive_user_id
+      column: user_id
+      rule: greater_than
+      value: 0

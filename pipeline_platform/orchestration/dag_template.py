@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from pipeline_platform.config_parser import PipelineConfig
 
 
@@ -8,8 +10,6 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from datetime import datetime
 
-# When running locally: project root is the working directory.
-# When running inside Docker: project is mounted at PIPELINE_PROJECT_DIR.
 _PROJECT_DIR = os.getenv("PIPELINE_PROJECT_DIR", ".")
 
 with DAG(
@@ -27,8 +27,9 @@ with DAG(
 
 
 def render_dag_file(config: PipelineConfig) -> str:
+    config_filename = Path(f"{config.pipeline.name}.yaml").name
     return DAG_TEMPLATE.format(
-        pipeline_name=config.pipeline_name,
+        pipeline_name=config.pipeline.name,
         schedule=config.schedule.cron,
-        config_path=f"configs/{config.pipeline_name}.yaml",
+        config_path=f"configs/{config_filename}",
     )
