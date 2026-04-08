@@ -81,7 +81,7 @@ self-service-platform/
 │
 ├── configs/                  # YAML pipeline configs
 ├── data/                     # Source CSV files
-├── data_sources/             # Additional data source files
+├── generated_dags/           # Generated Airflow DAG files
 ├── pipeline_platform/        # Core platform code
 │   ├── config_parser.py      # YAML configuration parsing
 │   ├── validator.py          # Configuration validation
@@ -95,5 +95,6 @@ self-service-platform/
 │
 ├── main.py                   # CLI entry point
 ├── requirements.txt          # Python dependencies
-└── warehouse.duckdb          # DuckDB database file
+├── warehouse.duckdb          # DuckDB database file
+└── STUDENT_TASKS.md          # Student task documentation
 ```
