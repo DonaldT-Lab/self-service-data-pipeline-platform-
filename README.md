@@ -63,7 +63,7 @@ Analytics Tables
    ↓
 Metadata & Logging
 
-# Project Structure
+Project Structure
 self-service-platform/
 │
 ├── configs/                  # YAML pipeline configs
